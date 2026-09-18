@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function estaLogado() {
+      return request.auth != null;
+    }
+
+    function souEu(id) {
+      return request.auth.uid == id;
+    }
+
+    function souAdmin() {
+      return estaLogado() &&
+        get(/databases/$(database)/documents/participantes/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // ------------ PARTICIPANTES ------------
+    match /participantes/{participanteId} {
+      allow read: if estaLogado();
+      // qualquer pessoa autenticada pode criar o próprio documento (cadastro)
+      allow create: if estaLogado() && souEu(participanteId);
+      // só o próprio dono edita o perfil; ninguém edita isAdmin exceto via console/admin
+      allow update: if estaLogado() && souEu(participanteId) &&
+        request.resource.data.isAdmin == resource.data.isAdmin;
+      allow update: if souAdmin(); // admin pode ajustar qualquer participante, inclusive isAdmin
+      allow delete: if souAdmin();
+    }
+
+    // ------------ LIVROS ------------
+    match /livros/{livroId} {
+      allow read: if estaLogado();
+      // qualquer participante pode sugerir (status deve ser "Sugestão")
+      allow create: if estaLogado() &&
+        (souAdmin() || request.resource.data.status == 'Sugestão');
+      // qualquer logado pode marcar que está lendo (só altera participantesIds) OU admin edita tudo
+      allow update: if souAdmin() ||
+        (estaLogado() &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participantesIds']));
+      allow delete: if souAdmin();
+    }
+
+    // ------------ VOTAÇÕES ------------
+    match /votacoes/{votacaoId} {
+      allow read: if estaLogado();
+      allow create: if souAdmin();
+      // qualquer participante pode alterar SOMENTE o campo votosIds (votar/desvotar)
+      allow update: if estaLogado() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votosIds']);
+      allow update: if souAdmin();
+      allow delete: if souAdmin();
+    }
+
+    // ------------ ENCONTROS ------------
+    match /encontros/{encontroId} {
+      allow read: if estaLogado();
+      allow create: if souAdmin();
+      allow update: if souAdmin() ||
+        (estaLogado() &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participantesIds']));
+      allow delete: if souAdmin();
+    }
+  }
+}

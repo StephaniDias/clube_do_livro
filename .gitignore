@@ -1,0 +1,19 @@
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+*.iml
+.idea/
+.vscode/
+android/local.properties
+ios/Flutter/flutter_export_environment.sh
+
+# Credenciais do Firebase (geradas por `flutterfire configure` / `flutter create`).
+# Cada pessoa que clonar o repo deve gerar as suas próprias — veja o README.
+lib/firebase_options.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
